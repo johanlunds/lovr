@@ -697,6 +697,7 @@ int luaopen_lovr_headset(lua_State* L) {
   size_t driverCount = 0;
   HeadsetDriver drivers[16];
   float offset = 1.7f;
+  float supersample = 1.f;
   int msaa = 4;
 
   if (lua_istable(L, -1)) {
@@ -717,13 +718,22 @@ int luaopen_lovr_headset(lua_State* L) {
     offset = luax_optfloat(L, -1, 1.7f);
     lua_pop(L, 1);
 
+    // Supersample
+    lua_getfield(L, -1, "supersample");
+    if (lua_type(L, -1) == LUA_TBOOLEAN) {
+      supersample = lua_toboolean(L, -1) ? 2.f : 1.f;
+    } else {
+      supersample = luax_optfloat(L, -1, 1.f);
+    }
+    lua_pop(L, 1);
+
     // MSAA
     lua_getfield(L, -1, "msaa");
     msaa = luaL_optinteger(L, -1, 4);
     lua_pop(L, 1);
   }
 
-  if (lovrHeadsetInit(drivers, driverCount, offset, msaa)) {
+  if (lovrHeadsetInit(drivers, driverCount, offset, supersample, msaa)) {
     luax_atexit(L, lovrHeadsetDestroy);
   }
 

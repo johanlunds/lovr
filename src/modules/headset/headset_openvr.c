@@ -84,7 +84,8 @@ static struct {
   float clipNear;
   float clipFar;
   float offset;
-  int msaa;
+  float supersample;
+  uint32_t msaa;
 } state;
 
 static TrackedDeviceIndex_t getDeviceIndex(Device device) {
@@ -204,6 +205,7 @@ static bool openvr_init(float offset, uint32_t msaa) {
   state.clipNear = 0.1f;
   state.clipFar = 30.f;
   state.offset = state.compositor->GetTrackingSpace() == ETrackingUniverseOrigin_TrackingUniverseStanding ? 0. : offset;
+  state.supersample = supersample;
   state.msaa = msaa;
 
   return true;
@@ -657,6 +659,8 @@ static void openvr_renderTo(void (*callback)(void*), void* userdata) {
   if (!state.canvas) {
     uint32_t width, height;
     openvr_getDisplayDimensions(&width, &height);
+    width *= state.supersample;
+    height *= state.supersample;
     CanvasFlags flags = { .depth = { true, false, FORMAT_D24S8 }, .stereo = true, .mipmaps = true, .msaa = state.msaa };
     state.canvas = lovrCanvasCreate(width, height, flags);
     Texture* texture = lovrTextureCreate(TEXTURE_2D, NULL, 0, true, true, state.msaa);

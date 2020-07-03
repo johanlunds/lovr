@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 // Provided by resources/webvr.js
-extern bool webvr_init(float offset, uint32_t msaa);
+extern bool webvr_init(float offset, float supersample, uint32_t msaa);
 extern void webvr_destroy(void);
 extern bool webvr_getName(char* name, size_t length);
 extern HeadsetOrigin webvr_getOriginType(void);

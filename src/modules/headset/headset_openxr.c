@@ -217,7 +217,7 @@ static struct {
 
 static void openxr_destroy();
 
-static bool openxr_init(float offset, uint32_t msaa) {
+static bool openxr_init(float offset, float supersample, uint32_t msaa) {
 
   { // Instance
     XrInstanceCreateInfo info = {
@@ -262,8 +262,8 @@ static bool openxr_init(float offset, uint32_t msaa) {
     }
 
     state.msaa = views[0].recommendedSwapchainSampleCount;
-    state.width = views[0].recommendedImageRectWidth;
-    state.height = views[0].recommendedImageRectHeight;
+    state.width = views[0].recommendedImageRectWidth * supersample;
+    state.height = views[0].recommendedImageRectHeight * supersample;
   }
 
   { // Actions...

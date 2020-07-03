@@ -98,6 +98,7 @@ function lovr.boot()
     headset = {
       drivers = { 'leap', 'openxr', 'oculus', 'vrapi', 'openvr', 'webxr', 'webvr', 'desktop' },
       offset = 1.7,
+      supersample = false,
       msaa = 4
     },
     math = {

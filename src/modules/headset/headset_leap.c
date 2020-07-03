@@ -39,7 +39,7 @@ static int loop(void* userdata) {
 }
 
 static void leap_destroy(void);
-static bool leap_init(float offset, uint32_t msaa) {
+static bool leap_init(float offset, float supersample, uint32_t msaa) {
   if (LeapCreateConnection(NULL, &state.connection) == eLeapRS_Success) {
     if (LeapOpenConnection(state.connection) == eLeapRS_Success) {
       LeapCreateClockRebaser(&state.clock);

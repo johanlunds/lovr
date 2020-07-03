@@ -35,7 +35,7 @@ static struct {
   float fov;
 } state;
 
-static bool desktop_init(float offset, uint32_t msaa) {
+static bool desktop_init(float offset, float supersample, uint32_t msaa) {
   state.offset = offset;
   state.clipNear = .1f;
   state.clipFar = 100.f;

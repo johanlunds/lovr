@@ -22,7 +22,7 @@ var LibraryLOVR = {
     }
   },
 
-  webvr_init: function(offset, msaa) {
+  webvr_init: function(offset, supersample, msaa) {
     if (webvr.initialized || !Module.lovrDisplay) {
       return false;
     }
@@ -43,9 +43,9 @@ var LibraryLOVR = {
     webvr.matC = c = Module._malloc(64);
     webvr.matD = d = Module._malloc(64);
     webvr.matE = e = Module._malloc(64);
-    webvr.width = display.getEyeParameters('left').renderWidth * 2;
+    webvr.width = display.getEyeParameters('left').renderWidth;
     webvr.height = display.getEyeParameters('left').renderHeight;
-    Browser.setCanvasSize(webvr.width, webvr.height);
+    Browser.setCanvasSize(webvr.width * supersample * 2, webvr.height * supersample);
 
     webvr.onentervr = function() {
       if (!display.isPresenting) {

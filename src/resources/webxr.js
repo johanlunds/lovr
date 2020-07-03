@@ -1,7 +1,7 @@
 var webxr = {
   $state: {},
 
-  webxr_init: function(offset, msaa) {
+  webxr_init: function(offset, supersample, msaa) {
     if (!navigator.xr) {
       return false;
     }
@@ -34,8 +34,8 @@ var webxr = {
         var sizeof_CanvasFlags = 16;
         var flags = Module.stackAlloc(sizeof_CanvasFlags);
         HEAPU8.fill(0, flags, flags + sizeof_CanvasFlags); // memset(&flags, 0, sizeof(CanvasFlags));
-        var width = state.layer.framebufferWidth;
-        var height = state.layer.framebufferHeight;
+        var width = state.layer.framebufferWidth * supersample;
+        var height = state.layer.framebufferHeight * supersample;
         state.canvas = Module['_lovrCanvasCreateFromHandle'](width, height, flags, framebuffer, 0, 0, 1, true);
         Module.stackRestore(flags);
 

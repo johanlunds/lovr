@@ -20,6 +20,8 @@ static struct {
   ovrSession session;
   long long frameIndex;
   ovrGraphicsLuid luid;
+  float supersample;
+  uint32_t msaa;
   float clipNear;
   float clipFar;
   ovrSizei size;
@@ -83,7 +85,7 @@ static ovrInputState *refreshButtons(void) {
   return &is;
 }
 
-static bool oculus_init(float offset, uint32_t msaa) {
+static bool oculus_init(float offset, float supersample, uint32_t msaa) {
   ovrResult result = ovr_Initialize(NULL);
   if (OVR_FAILURE(result)) {
     return false;
@@ -99,6 +101,8 @@ static bool oculus_init(float offset, uint32_t msaa) {
 
   state.needRefreshTracking = true;
   state.needRefreshButtons = true;
+  state.supersample = supersample;
+  state.msaa = msaa;
   state.clipNear = .1f;
   state.clipFar = 100.f;
 
@@ -329,6 +333,8 @@ static ModelData* oculus_newModelData(Device device) {
 static void oculus_renderTo(void (*callback)(void*), void* userdata) {
   if (!state.canvas) {
     state.size = ovr_GetFovTextureSize(state.session, ovrEye_Left, state.desc.DefaultEyeFov[ovrEye_Left], 1.0f);
+    state.size.w *= state.supersample;
+    state.size.h *= state.supersample;
 
     ovrTextureSwapChainDesc swdesc = {
       .Type = ovrTexture_2D,
@@ -337,7 +343,7 @@ static void oculus_renderTo(void (*callback)(void*), void* userdata) {
       .Width = 2 * state.size.w,
       .Height = state.size.h,
       .MipLevels = 1,
-      .SampleCount = 1,
+      .SampleCount = state.msaa,
       .StaticImage = ovrFalse
     };
     lovrAssert(OVR_SUCCESS(ovr_CreateTextureSwapChainGL(state.session, &swdesc, &state.chain)), "Unable to create swapchain");
