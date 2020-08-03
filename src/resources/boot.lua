@@ -83,7 +83,6 @@ function lovr.boot()
   local conf = {
     version = '0.13.0',
     identity = 'default',
-    hotkeys = true,
     modules = {
       audio = true,
       data = true,
