@@ -7,6 +7,7 @@
 #include "filesystem/filesystem.h"
 #include "graphics/graphics.h"
 #include "graphics/canvas.h"
+#include "graphics/model.h"
 #include "core/maf.h"
 #include "core/os.h"
 #include "core/ref.h"
@@ -75,6 +76,7 @@ static struct {
   VRActionHandle_t axisActions[2][MAX_AXES];
   VRActionHandle_t skeletonActions[2];
   VRActionHandle_t hapticActions[2];
+  VRInputValueHandle_t inputSources[3];
   TrackedDevicePose_t renderPoses[64];
   Canvas* canvas;
   float* mask;
@@ -198,6 +200,10 @@ static bool openvr_init(float offset, uint32_t msaa) {
 
   state.input->GetActionHandle("/actions/lovr/out/leftHandBZZ", &state.hapticActions[0]);
   state.input->GetActionHandle("/actions/lovr/out/rightHandBZZ", &state.hapticActions[1]);
+
+  state.input->GetInputSourceHandle("/user/head", &state.inputSources[DEVICE_HEAD]);
+  state.input->GetInputSourceHandle("/user/hand/left", &state.inputSources[DEVICE_HAND_LEFT]);
+  state.input->GetInputSourceHandle("/user/hand/right", &state.inputSources[DEVICE_HAND_RIGHT]);
 
   state.clipNear = 0.1f;
   state.clipFar = 30.f;
@@ -555,7 +561,7 @@ static ModelData* openvr_newModelData(Device device) {
   TrackedDeviceIndex_t index = getDeviceIndex(device);
   if (index == INVALID_DEVICE) return NULL;
 
-  bool animated = false;
+  bool animated = true;
 
   RenderModel_t* renderModel = NULL;
   RenderModel_TextureMap_t* renderModelTexture = NULL;
@@ -575,17 +581,41 @@ static ModelData* openvr_newModelData(Device device) {
       return NULL;
     }
   } else {
-    //
+    uint32_t componentCount = state.renderModels->GetComponentCount(renderModelName);
+    renderModels = malloc(componentCount * sizeof(*renderModels));
+    renderModelTextures = malloc(componentCount * sizeof(*renderModelTextures));
+    for (uint32_t i = 0; i < componentCount; i++) {
+      char componentName[1024];
+      char componentModel[1024];
+      state.renderModels->GetComponentName(renderModelName, i, componentName, sizeof(componentName));
+      if (!state.renderModels->GetComponentRenderModelName(renderModelName, componentName, componentModel, sizeof(componentModel))) {
+        continue;
+      }
+
+      // Sadly this loads the components serially...
+      if (!loadRenderModel(componentModel, &renderModels[modelCount], &renderModelTextures[modelCount])) {
+        for (uint32_t j = 0; modelCount > 0 && j < modelCount; j++) {
+          state.renderModels->FreeRenderModel(renderModels[j]);
+          state.renderModels->FreeTexture(renderModelTextures[j]);
+        }
+        free(renderModels);
+        free(renderModelTextures);
+        return NULL;
+      }
+
+      modelCount++;
+    }
   }
 
   ModelData* model = lovrAlloc(ModelData);
   model->blobCount = 2;
-  model->nodeCount = modelCount;
+  model->nodeCount = 1 + modelCount;
   model->bufferCount = 2 * modelCount;
   model->attributeCount = 4 * modelCount;
   model->textureCount = modelCount;
   model->materialCount = modelCount;
   model->primitiveCount = modelCount;
+  model->childCount = modelCount;
 
   lovrModelDataAllocate(model);
 
@@ -605,6 +635,14 @@ static ModelData* openvr_newModelData(Device device) {
 
   model->blobs[0] = lovrBlobCreate(vertices, totalVertexCount * vertexSize, "OpenVR Model Vertices");
   model->blobs[1] = lovrBlobCreate(indices, totalIndexCount * sizeof(uint16_t), "OpenVR Model Indices");
+
+  model->nodes[0] = (ModelNode) {
+    .transform.matrix = MAT4_IDENTITY,
+    .matrix = true,
+    .childCount = modelCount,
+    .children = model->children,
+    .skin = ~0u
+  };
 
   for (uint32_t i = 0; i < modelCount; i++) {
     uint32_t vertexCount = renderModels[i]->unVertexCount;
@@ -672,13 +710,15 @@ static ModelData* openvr_newModelData(Device device) {
       .material = i
     };
 
-    model->nodes[i] = (ModelNode) {
+    model->nodes[1 + i] = (ModelNode) {
       .transform.matrix = MAT4_IDENTITY,
       .primitiveIndex = i,
       .primitiveCount = 1,
       .skin = ~0u,
       .matrix = true
     };
+
+    model->children[i] = 1 + i;
   }
 
   for (uint32_t i = 0; i < modelCount; i++) {
@@ -686,7 +726,22 @@ static ModelData* openvr_newModelData(Device device) {
     state.renderModels->FreeTexture(renderModelTextures[i]);
   }
 
+  if (!animated) {
+    free(renderModels);
+    free(renderModelTextures);
+  }
+
   return model;
+}
+
+static bool openvr_animate(Device device, Model* model) {
+  if (device != DEVICE_HEAD && device != DEVICE_HAND_LEFT && device != DEVICE_HAND_RIGHT) {
+    return false;
+  }
+
+  VRInputValueHandle_t inputSource = state.inputSources[device];
+  // names!
+  return true;
 }
 
 static void openvr_renderTo(void (*callback)(void*), void* userdata) {
